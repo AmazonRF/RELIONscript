@@ -420,12 +420,14 @@ void FrameRecombiner::process(const std::vector<MetaDataTable>& mdts, long g_sta
 
                 for (int f_p = f; f_p < f+2; f_p++)
                 {
-                    shiftImageInFourierTransform(movie[p][f](), obsPer2Frame(), s_out[ogmg], -shift[p][f].x, -shift[p][f].y);
+					std::cerr << "AmazonRF: f_start = " << f << " f_currently = " << f_p << std::endl;
+
+                    shiftImageInFourierTransform(movie[p][f_p](), obsPer2Frame(), s_out[ogmg], -shift[p][f_p].x, -shift[p][f_p].y);
 
                     for (int y = 0; y < s_out[ogmg]; y++)
                     for (int x = 0; x < sh_out[ogmg]; x++)
                     {
-                        sumPer2Frame(y,x) += freqWeights[ogmg][f](y,x) * obsPer2Frame(y,x);
+                        sumPer2Frame(y,x) += freqWeights[ogmg][f_p](y,x) * obsPer2Frame(y,x);
                     }
                 }
                 fImage<RFLOAT> realPer2Frame(s_out[ogmg], s_out[ogmg]);
