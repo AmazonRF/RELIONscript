@@ -311,7 +311,7 @@ void FrameRecombiner::process(const std::vector<MetaDataTable>& mdts, long g_sta
 				my_projected_center = A3D * my_center;
 			}
 
-		 	xoff -= XX(my_projected_center);
+			xoff -= XX(my_projected_center);
 			yoff -= YY(my_projected_center);
 			xoff = xoff * ref_angpix / coords_angpix; // Now in (possibly binned) micrograph's pixel
 			yoff = yoff * ref_angpix / coords_angpix;
@@ -398,51 +398,6 @@ void FrameRecombiner::process(const std::vector<MetaDataTable>& mdts, long g_sta
 
 		stack.setSamplingRateInHeader(angpix_out[ogmg]);
 		stack.write(fn_root+"_shiny" + suffix + ".mrcs");
-		
-		// AmazonRF 04-01
-		// per frame
-		//moviePerFrame = micrographHandler->loadMovie(mdtOut, s_out[ogmg], angpix_out[ogmg], fts, &shift0, &shift, data_angpix[ogmg]);
-
-		//const int out_size = crop_arg > 0 ? crop_arg : s_out[ogmg];
-
-		#pragma omp parallel for num_threads(nr_omp_threads)
-		for (int f = 0; f < fc; f++)
-        {
-            Image<RFLOAT> stackPerFrame(out_size, out_size, 1, pc); 
-            int threadnum = omp_get_thread_num();
-
-            for (int p = 0; p < pc; p++)
-            {
-                Image<Complex> sumPerFrame(sh_out[ogmg], s_out[ogmg]);
-                sumPerFrame.data.initZeros();
-
-                Image<Complex> obsPerFrame(sh_out[ogmg], s_out[ogmg]);
-
-                shiftImageInFourierTransform(movie[p][f](), obsPerFrame(), s_out[ogmg], -shift[p][f].x, -shift[p][f].y);
-                for (int y = 0; y < s_out[ogmg]; y++)
-                for (int x = 0; x < sh_out[ogmg]; x++)
-                {
-                    sumPerFrame(y,x) += freqWeights[ogmg][f](y,x) * obsPerFrame(y,x);
-                }
-
-                Image<RFLOAT> realPerFrame(s_out[ogmg], s_out[ogmg]);
-                fts[threadnum].inverseFourierTransform(sumPerFrame(), realPerFrame());
-				realPerFrame().setXmippOrigin();
-
-				const int half_out = out_size / 2;
-				for (int y = 0; y < out_size; y++)
-				for (int x = 0; x < out_size; x++)
-				{
-					DIRECT_NZYX_ELEM(stackPerFrame(), p, 0, y, x) = realPerFrame(y - half_out, x - half_out); // Image() is logical access
-				}
-                
-            }
-            std::stringstream sts;
-            sts << (f+1);
-			stackPerFrame.setSamplingRateInHeader(angpix_out[ogmg]);
-            stackPerFrame.write(fn_root+"frame"+sts.str()+"_shiny.mrcs");
-        }
-        //
 
 		if (debug)
 		{

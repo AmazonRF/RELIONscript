@@ -398,51 +398,56 @@ void FrameRecombiner::process(const std::vector<MetaDataTable>& mdts, long g_sta
 
 		stack.setSamplingRateInHeader(angpix_out[ogmg]);
 		stack.write(fn_root+"_shiny" + suffix + ".mrcs");
-		
-		// AmazonRF 04-01
-		// per frame
+
+		// AmazonRF 05-26
+		// per 2 frame
 		//moviePerFrame = micrographHandler->loadMovie(mdtOut, s_out[ogmg], angpix_out[ogmg], fts, &shift0, &shift, data_angpix[ogmg]);
 
 		//const int out_size = crop_arg > 0 ? crop_arg : s_out[ogmg];
 
 		#pragma omp parallel for num_threads(nr_omp_threads)
-		for (int f = 0; f < fc; f++)
+		for (int f = 0; f < fc; f=f+2)
         {
-            Image<RFLOAT> stackPerFrame(out_size, out_size, 1, pc); 
+            Image<RFLOAT> stackPer2Frame(out_size, out_size, 1, pc); 
             int threadnum = omp_get_thread_num();
 
             for (int p = 0; p < pc; p++)
             {
-                Image<Complex> sumPerFrame(sh_out[ogmg], s_out[ogmg]);
-                sumPerFrame.data.initZeros();
+                Image<Complex> sumPer2Frame(sh_out[ogmg], s_out[ogmg]);
+                sumPer2Frame.data.initZeros();
 
-                Image<Complex> obsPerFrame(sh_out[ogmg], s_out[ogmg]);
+                Image<Complex> obsPer2Frame(sh_out[ogmg], s_out[ogmg]);
 
-                shiftImageInFourierTransform(movie[p][f](), obsPerFrame(), s_out[ogmg], -shift[p][f].x, -shift[p][f].y);
-                for (int y = 0; y < s_out[ogmg]; y++)
-                for (int x = 0; x < sh_out[ogmg]; x++)
+                for (int f_p = f; f_p < f+2; f_p++)
                 {
-                    sumPerFrame(y,x) += freqWeights[ogmg][f](y,x) * obsPerFrame(y,x);
-                }
+                    shiftImageInFourierTransform(movie[p][f](), obsPer2Frame(), s_out[ogmg], -shift[p][f].x, -shift[p][f].y);
 
-                Image<RFLOAT> realPerFrame(s_out[ogmg], s_out[ogmg]);
-                fts[threadnum].inverseFourierTransform(sumPerFrame(), realPerFrame());
-				realPerFrame().setXmippOrigin();
+                    for (int y = 0; y < s_out[ogmg]; y++)
+                    for (int x = 0; x < sh_out[ogmg]; x++)
+                    {
+                        sumPer2Frame(y,x) += freqWeights[ogmg][f](y,x) * obsPer2Frame(y,x);
+                    }
+                }
+                fImage<RFLOAT> realPer2Frame(s_out[ogmg], s_out[ogmg]);
+
+                fts[threadnum].inverseFourierTransform(sumPer2Frame(), realPer2Frame());
+				realPer2Frame().setXmippOrigin();
 
 				const int half_out = out_size / 2;
 				for (int y = 0; y < out_size; y++)
 				for (int x = 0; x < out_size; x++)
 				{
-					DIRECT_NZYX_ELEM(stackPerFrame(), p, 0, y, x) = realPerFrame(y - half_out, x - half_out); // Image() is logical access
+					DIRECT_NZYX_ELEM(stackPer2Frame(), p, 0, y, x) = realPer2Frame(y - half_out, x - half_out); // Image() is logical access
 				}
                 
             }
             std::stringstream sts;
             sts << (f+1);
-			stackPerFrame.setSamplingRateInHeader(angpix_out[ogmg]);
-            stackPerFrame.write(fn_root+"frame"+sts.str()+"_shiny.mrcs");
+			stackPer2Frame.setSamplingRateInHeader(angpix_out[ogmg]);
+            stackPer2Frame.write(fn_root+"double_frame"+sts.str()+"_shiny.mrcs");
         }
         //
+		// say bye to A
 
 		if (debug)
 		{
