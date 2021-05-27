@@ -1,4 +1,4 @@
-/***************************************************************************
+ /***************************************************************************
  *
  * Author: "Jasenko Zivanov"
  * MRC Laboratory of Molecular Biology
@@ -430,7 +430,7 @@ void FrameRecombiner::process(const std::vector<MetaDataTable>& mdts, long g_sta
                         sumPer2Frame(y,x) += freqWeights[ogmg][f_p](y,x) * obsPer2Frame(y,x);
                     }
                 }
-                fImage<RFLOAT> realPer2Frame(s_out[ogmg], s_out[ogmg]);
+                Image<RFLOAT> realPer2Frame(s_out[ogmg], s_out[ogmg]);
 
                 fts[threadnum].inverseFourierTransform(sumPer2Frame(), realPer2Frame());
 				realPer2Frame().setXmippOrigin();
